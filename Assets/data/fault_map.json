@@ -1,0 +1,106 @@
+{
+  "fault_map": {
+    "H-H": [],
+    "R-U": [
+      "Rotor_Core",
+      "Rotor_End_Ring_DE",
+      "Rotor_End_Ring_NDE"
+    ],
+    "R-M": [
+      "Shaft",
+      "Coupling_Hub"
+    ],
+    "B-R": [
+      "Shaft",
+      "Rotor_Core"
+    ],
+    "K-A": [
+      "Rotor_Bar_00"
+    ],
+    "S-W": [
+      "Stator_Winding_U",
+      "Stator_Winding_V",
+      "Stator_Winding_W"
+    ],
+    "V-U": [
+      "Terminal_Box",
+      "Terminal_Box_Lid"
+    ],
+    "F-B_DE": [
+      "Bearing_DE_Cage",
+      "Bearing_DE_Inner",
+      "Bearing_DE_Outer",
+      "Ball_DE_0",
+      "Ball_DE_1",
+      "Ball_DE_2",
+      "Ball_DE_3",
+      "Ball_DE_4",
+      "Ball_DE_5",
+      "Ball_DE_6",
+      "Ball_DE_7",
+      "Ball_DE_8"
+    ],
+    "F-B_NDE": [
+      "Bearing_NDE_Cage",
+      "Bearing_NDE_Inner",
+      "Bearing_NDE_Outer",
+      "Ball_NDE_0",
+      "Ball_NDE_1",
+      "Ball_NDE_2",
+      "Ball_NDE_3",
+      "Ball_NDE_4",
+      "Ball_NDE_5",
+      "Ball_NDE_6",
+      "Ball_NDE_7",
+      "Ball_NDE_8"
+    ]
+  },
+  "rotor_bars": [
+    "Rotor_Bar_00",
+    "Rotor_Bar_01",
+    "Rotor_Bar_02",
+    "Rotor_Bar_03",
+    "Rotor_Bar_04",
+    "Rotor_Bar_05",
+    "Rotor_Bar_06",
+    "Rotor_Bar_07",
+    "Rotor_Bar_08",
+    "Rotor_Bar_09",
+    "Rotor_Bar_10",
+    "Rotor_Bar_11",
+    "Rotor_Bar_12",
+    "Rotor_Bar_13",
+    "Rotor_Bar_14",
+    "Rotor_Bar_15",
+    "Rotor_Bar_16",
+    "Rotor_Bar_17",
+    "Rotor_Bar_18",
+    "Rotor_Bar_19",
+    "Rotor_Bar_20",
+    "Rotor_Bar_21",
+    "Rotor_Bar_22",
+    "Rotor_Bar_23",
+    "Rotor_Bar_24",
+    "Rotor_Bar_25",
+    "Rotor_Bar_26",
+    "Rotor_Bar_27"
+  ],
+  "colors": {
+    "H-H": "#2ecc71",
+    "R-U": "#FF00E6",
+    "R-M": "#9A3DFF",
+    "B-R": "#00F0FF",
+    "K-A": "#FF6A00",
+    "S-W": "#00FFA3",
+    "V-U": "#CCFF00",
+    "F-B": "#CCFF00"
+  },
+  "shaft_axis": "local X",
+  "rotating_root": "Rotor_Assembly",
+  "ball_cages": [
+    "Bearing_DE_Cage",
+    "Bearing_NDE_Cage"
+  ],
+  "cage_speed_ratio": 0.398,
+  "sync_rpm_per_hz": 60
+}
