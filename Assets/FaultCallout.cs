@@ -129,6 +129,7 @@ public class FaultCallout : MonoBehaviour
     int relayout;
     float lastWidth, lastGap, lastMaxH, lastUp;
     int lastFont;
+    string lastConfLine = "";
 
     void Start()
     {
@@ -383,17 +384,24 @@ public class FaultCallout : MonoBehaviour
             relayout = Mathf.Max(relayout, 1);
         }
 
+        string confLine = ConfidenceLine();
         if (code != lastCode)
         {
             lastCode = code;
+            lastConfLine = confLine;
             appear = 0f;
-            currentText = "<size=" + Mathf.RoundToInt(fontSize * 1.3f) + "><b>" + info[0] + "</b></size>"
-                          + "\n\n<b>What it is:</b> " + info[1]
-                          + "\n\n<b>What to expect:</b> " + info[2]
-                          + "\n\n<b>Criticality:</b> " + info[3];
+            currentText = BuildText(info, confLine);
             Layout(currentText);
             Place();
             relayout = 2;   // measure the text again on the next frames, in case the font was not ready
+        }
+        else if (confLine != lastConfLine)
+        {
+            lastConfLine = confLine;
+            currentText = BuildText(info, confLine);
+            float before = panelHeightPx;
+            Layout(currentText);
+            if (Mathf.Abs(before - panelHeightPx) > 1f) Place();   // only when the panel got taller or shorter
         }
         else if (relayout > 0)
         {
@@ -467,5 +475,22 @@ public class FaultCallout : MonoBehaviour
             lr.startColor = color;
             lr.endColor = color;
         }
+    }
+        // "Model confidence: 92%", or nothing when the fault did not come from the model
+    string ConfidenceLine()
+    {
+        var s = MotorState.Instance;
+        if (s == null || fv.useDropdown || !s.ModelActive) return "";
+        return "Model confidence: " + Mathf.RoundToInt(s.confidence * 100f) + "%";
+    }
+
+    string BuildText(string[] info, string confLine)
+    {
+        string t = "<size=" + Mathf.RoundToInt(fontSize * 1.3f) + "><b>" + info[0] + "</b></size>";
+        if (confLine.Length > 0) t += "\n" + confLine;
+        t += "\n\n<b>What it is:</b> " + info[1]
+           + "\n\n<b>What to expect:</b> " + info[2]
+           + "\n\n<b>Criticality:</b> " + info[3];
+        return t;
     }
 }

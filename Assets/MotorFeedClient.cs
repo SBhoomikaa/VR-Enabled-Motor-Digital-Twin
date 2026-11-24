@@ -26,6 +26,7 @@ public class MotorFeedClient : MonoBehaviour
     public MotorState state;
     public MotorShaker shaker;
     public MotorSoundPlayer soundPlayer;
+    public MotorModelRunner modelRunner;
 
     readonly ConcurrentQueue<string> inbox = new ConcurrentQueue<string>();
     CancellationTokenSource cts;
@@ -49,6 +50,7 @@ public class MotorFeedClient : MonoBehaviour
     {
         if (shaker == null) shaker = FindFirstObjectByType<MotorShaker>();
         if (soundPlayer == null) soundPlayer = FindFirstObjectByType<MotorSoundPlayer>();
+        if (modelRunner == null) modelRunner = FindFirstObjectByType<MotorModelRunner>();
     }
 
     async Task RunAsync(CancellationToken ct)
@@ -128,8 +130,12 @@ public class MotorFeedClient : MonoBehaviour
         try
         {
             string type = (string)j["type"];
+            /*if (type == "shake") ApplyShake(j);
+            else if (type == "audio") ApplyAudio(j);
+            else ApplyReadings(j);*/
             if (type == "shake") ApplyShake(j);
             else if (type == "audio") ApplyAudio(j);
+            else if (type == "window") ApplyWindow(j);
             else ApplyReadings(j);
         }
         catch (Exception e)
@@ -153,6 +159,9 @@ public class MotorFeedClient : MonoBehaviour
 
         var temp = j["temperature_c"];
         if (IsNumber(temp)) state.SetTemperature((float)temp);
+
+        if (fault != null && fault.Type == JTokenType.String && !state.modelControlsFault)
+            state.SetFault((string)fault);
     }
 
     void ApplyShake(JObject j)
@@ -183,5 +192,25 @@ public class MotorFeedClient : MonoBehaviour
             samples[i] = v / 32768f;
         }
         soundPlayer.Push(rate, samples);
+    }
+        // One window of raw sensor values for the model:
+    // {"type":"window","data":"<base64 of 4 x 21000 float32, little-endian, channel by channel>"}
+    void ApplyWindow(JObject j)
+    {
+        if (modelRunner == null) return;
+        string b64 = (string)j["data"];
+        if (string.IsNullOrEmpty(b64)) return;
+
+        byte[] bytes = Convert.FromBase64String(b64);
+        int count = bytes.Length / 4;
+        if (count != MotorModelRunner.Channels * MotorModelRunner.Samples)
+        {
+            Debug.LogWarning("MotorFeedClient: window has " + count + " values, expected "
+                             + MotorModelRunner.Channels * MotorModelRunner.Samples);
+            return;
+        }
+        var window = new float[count];
+        Buffer.BlockCopy(bytes, 0, window, 0, bytes.Length);
+        modelRunner.Push(window);
     }
 }
