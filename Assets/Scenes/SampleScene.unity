@@ -383,6 +383,55 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &690530342
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 690530343}
+  - component: {fileID: 690530344}
+  m_Layer: 0
+  m_Name: FactoryEnv
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &690530343
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 690530342}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.042789996, y: 0, z: 0.95427}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &690530344
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 690530342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09c9e81ceac471a48be1fa9a293d0070, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FactoryEnvironment
+  motor: {fileID: 543450652424888444}
+  skybox: {fileID: 2100000, guid: c9ba267e90ad6f44ab27930d463c5720, type: 2}
+  roomSize: 14
+  wallHeight: 6
+  buildWalls: 0
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -563,6 +612,7 @@ GameObject:
   - component: {fileID: 2040599908}
   - component: {fileID: 2040599910}
   - component: {fileID: 2040599911}
+  - component: {fileID: 2040599912}
   m_Layer: 0
   m_Name: Motor_state
   m_TagString: Untagged
@@ -601,6 +651,8 @@ MonoBehaviour:
   speedHz: 0
   loaded: 0
   temperatureC: 0
+  modelControlsFault: 1
+  confidence: 0
   staleAfterSeconds: 5
   showTag: 1
 --- !u!114 &2040599907
@@ -620,6 +672,7 @@ MonoBehaviour:
   state: {fileID: 0}
   shaker: {fileID: 0}
   soundPlayer: {fileID: 0}
+  modelRunner: {fileID: 0}
 --- !u!114 &2040599908
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -775,6 +828,23 @@ MonoBehaviour:
   panelMaxHeight: 0.7
   fontSize: 28
   arrowThickness: 0.01
+--- !u!114 &2040599912
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2040599904}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f327a2bd954fdb479fdfa153af9e068, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MotorModelRunner
+  modelAsset: {fileID: 5022602860645237092, guid: c85c49d7d65db1b478dc282e533317e1, type: 3}
+  backend: 512
+  windowsInARow: 2
+  lastRunMilliseconds: 0
+  windowsRun: 0
 --- !u!23 &36712305456203863
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -6963,3 +7033,4 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 543450652424888444}
   - {fileID: 2040599905}
+  - {fileID: 690530343}
