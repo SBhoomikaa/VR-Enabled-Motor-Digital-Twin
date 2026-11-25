@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
@@ -93,6 +92,10 @@ public class FaultVisualizer : MonoBehaviour
     public float minPitch = 10f;
     public float maxPitch = 80f;
 
+    [Header("Hide menu")]
+    public float menuButtonSize = 70f;
+    public bool lockFaultParts = false;
+
     Vector3 center, baseCenter;
     float yaw, pitch, dist, baseYaw, basePitch, baseDist, panLimit;
 
@@ -120,6 +123,16 @@ public class FaultVisualizer : MonoBehaviour
     Vector3 tPos;
     Quaternion tRot;
     bool hasT;
+
+    // Hide menu state.
+    readonly List<Renderer> userHidden = new List<Renderer>();
+    HashSet<Renderer> faultyParts = new HashSet<Renderer>();
+    bool menuOpen;
+    Vector2 menuScroll, downPos;
+    bool downOnUI;
+    Rect buttonRect, menuRect;
+    float rowH;
+    GUIStyle btnStyle, itemStyle, titleStyle;
 
     public string ShownCode => shownCode;
     public Camera ViewCamera => cam;
@@ -242,6 +255,15 @@ public class FaultVisualizer : MonoBehaviour
         // All renderers, including Assembly.
         all = GetComponentsInChildren<Renderer>(true);
 
+        // Add colliders so parts can be clicked.
+        foreach (var r in all)
+        {
+            var mf = r.GetComponent<MeshFilter>();
+
+            if (mf && mf.sharedMesh && !r.GetComponent<Collider>())
+                r.gameObject.AddComponent<MeshCollider>();
+        }
+
         // Camera framing renderers, excluding Assembly.
         framingRenderers = all
             .Where(r => r != null && !IsInsideAssembly(r.transform))
@@ -291,12 +313,17 @@ public class FaultVisualizer : MonoBehaviour
             return;
         }
 
+        // New fault = new default view. Clear the user's choices.
+        userHidden.Clear();
+
         var p = profiles.FirstOrDefault(x => x.code == code)
                 ?? new Profile();
 
         // FULL hierarchy: Assembly is included.
         var faulty = RenderersOf(faultMap[code]);
         var hidden = RenderersOf(p.hide);
+
+        faultyParts = faulty;
 
         Color col = Color.white;
 
@@ -329,7 +356,7 @@ public class FaultVisualizer : MonoBehaviour
             AnchorGroups.Add(faulty.ToArray());
         }
 
-        // Fault highlighting and hiding still affect the FULL hierarchy.
+        // Fault highlighting and default hiding.
         foreach (var r in all)
         {
             bool isFaulty = faulty.Contains(r);
@@ -343,8 +370,6 @@ public class FaultVisualizer : MonoBehaviour
         // CAMERA FRAMING
         // ------------------------------------------------
 
-        // Resolve profile frame names using the original motor
-        // hierarchy only. Assembly names are not considered here.
         HashSet<Renderer> framed;
 
         if (p.frame != null && p.frame.Length > 0)
@@ -353,15 +378,11 @@ public class FaultVisualizer : MonoBehaviour
         }
         else
         {
-            // If no specific frame parts are provided,
-            // use faulty parts that belong to the original motor.
             framed = new HashSet<Renderer>(
                 faulty.Where(r => framingSet.Contains(r))
             );
         }
 
-        // If no suitable fault parts exist in the original motor,
-        // frame all visible original motor renderers.
         if (framed.Count == 0)
         {
             framed = new HashSet<Renderer>(
@@ -369,7 +390,6 @@ public class FaultVisualizer : MonoBehaviour
             );
         }
 
-        // Last fallback: all original motor renderers.
         if (framed.Count == 0)
         {
             framed = new HashSet<Renderer>(
@@ -386,7 +406,6 @@ public class FaultVisualizer : MonoBehaviour
             return;
         }
 
-        // Calculate bounds using ONLY original motor renderers.
         var b = framed.First().bounds;
 
         foreach (var r in framed)
@@ -494,14 +513,30 @@ public class FaultVisualizer : MonoBehaviour
         );
     }
 
+    // ------------------------------------------------
+    // INPUT + HIDE MENU
+    // ------------------------------------------------
+
     void OnGUI()
     {
         if (!hasT)
             return;
 
+        InitStyles();
+        ComputeRects();
+
         var e = Event.current;
 
-        if (e.type == EventType.MouseDrag)
+        bool overUI = buttonRect.Contains(e.mousePosition)
+                   || (menuOpen && menuRect.Contains(e.mousePosition));
+
+        if (e.type == EventType.MouseDown && e.button == 0)
+        {
+            downPos = e.mousePosition;
+            downOnUI = overUI;
+        }
+
+        if (e.type == EventType.MouseDrag && !downOnUI)
         {
             if (e.button == 0)
             {
@@ -529,7 +564,16 @@ public class FaultVisualizer : MonoBehaviour
                     );
             }
         }
-        else if (e.type == EventType.ScrollWheel)
+        else if (e.type == EventType.MouseUp && e.button == 0)
+        {
+            // A click = tiny movement, not on the menu, not a double click.
+            if (!downOnUI && !overUI && e.clickCount < 2
+                && (e.mousePosition - downPos).sqrMagnitude < 25f)
+            {
+                TryHideAt(e.mousePosition);
+            }
+        }
+        else if (e.type == EventType.ScrollWheel && !overUI)
         {
             dist = Mathf.Clamp(
                 dist * (1f + e.delta.y * zoomSpeed),
@@ -539,10 +583,161 @@ public class FaultVisualizer : MonoBehaviour
         }
         else if (
             (e.type == EventType.KeyDown && e.keyCode == KeyCode.R) ||
-            (e.type == EventType.MouseDown && e.clickCount == 2)
+            (e.type == EventType.MouseDown && e.clickCount == 2 && !overUI)
         )
         {
             ResetView();
         }
+
+        DrawHideMenu();
+    }
+
+    void InitStyles()
+    {
+        if (btnStyle != null) return;
+
+        btnStyle = new GUIStyle(GUI.skin.button)
+        {
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter
+        };
+
+        itemStyle = new GUIStyle(GUI.skin.button)
+        {
+            alignment = TextAnchor.MiddleLeft
+        };
+
+        titleStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleLeft
+        };
+    }
+
+    void ComputeRects()
+    {
+        float s = Mathf.Max(menuButtonSize, Screen.height * 0.06f);
+        float m = 10f;
+        rowH = s * 0.55f;
+
+        btnStyle.fontSize = (int)(s * 0.45f);
+        itemStyle.fontSize = (int)(rowH * 0.5f);
+        titleStyle.fontSize = (int)(rowH * 0.5f);
+
+        // Bottom-right corner.
+        buttonRect = new Rect(Screen.width - s - m,
+                              Screen.height - s - m, s, s);
+
+        float w = Mathf.Max(260f, s * 4f);
+        int rows = Mathf.Max(userHidden.Count, 1);
+        float h = Mathf.Min(rowH * (rows + 2), Screen.height * 0.5f);
+
+        // Menu opens upward, above the button.
+        menuRect = new Rect(Screen.width - w - m,
+                            buttonRect.y - 6f - h, w, h);
+    }
+
+    void DrawHideMenu()
+    {
+        var old = GUI.backgroundColor;
+        GUI.backgroundColor = Color.red;
+
+        string label = userHidden.Count > 0 ? "H " + userHidden.Count : "H";
+
+        if (GUI.Button(buttonRect, label, btnStyle))
+            menuOpen = !menuOpen;
+
+        GUI.backgroundColor = old;
+
+        if (!menuOpen) return;
+
+        GUI.Box(menuRect, GUIContent.none);
+
+        GUI.Label(
+            new Rect(menuRect.x + 8, menuRect.y, menuRect.width - 16, rowH),
+            "Hidden parts", titleStyle);
+
+        var listRect = new Rect(
+            menuRect.x, menuRect.y + rowH,
+            menuRect.width, menuRect.height - 2 * rowH);
+
+        if (userHidden.Count == 0)
+        {
+            GUI.Label(
+                new Rect(listRect.x + 8, listRect.y,
+                         listRect.width - 16, rowH),
+                "Nothing hidden. Click a part to hide it.", titleStyle);
+            return;
+        }
+
+        Renderer toRestore = null;
+
+        var view = new Rect(0, 0, listRect.width - 18,
+                            userHidden.Count * rowH);
+
+        menuScroll = GUI.BeginScrollView(listRect, menuScroll, view);
+
+        for (int i = 0; i < userHidden.Count; i++)
+        {
+            var r = userHidden[i];
+            string n = r ? r.gameObject.name : "(missing)";
+
+            if (GUI.Button(new Rect(0, i * rowH, view.width, rowH),
+                           n, itemStyle))
+                toRestore = r;
+        }
+
+        GUI.EndScrollView();
+
+        if (GUI.Button(
+                new Rect(menuRect.x, menuRect.yMax - rowH,
+                         menuRect.width, rowH),
+                "Show all", itemStyle))
+        {
+            foreach (var r in userHidden.ToArray())
+                Restore(r);
+        }
+
+        if (toRestore != null)
+            Restore(toRestore);
+    }
+
+    void TryHideAt(Vector2 guiPos)
+    {
+        var ray = cam.ScreenPointToRay(
+            new Vector3(guiPos.x, Screen.height - guiPos.y));
+
+        var hits = Physics.RaycastAll(ray, 1000f);
+
+        System.Array.Sort(hits,
+            (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (var h in hits)
+        {
+            var r = h.collider.GetComponent<Renderer>();
+
+            // Skip parts that are already hidden (by default or by user).
+            // Their colliders stay active, so we look past them.
+            if (!r || !r.enabled)
+                continue;
+
+            // Optional: fault parts cannot be hidden.
+            if (lockFaultParts && faultyParts.Contains(r))
+                return;
+
+            r.enabled = false;
+            userHidden.Add(r);
+            return;
+        }
+    }
+
+    void Restore(Renderer r)
+    {
+        userHidden.Remove(r);
+
+        // Only parts that were visible can be in this list,
+        // so it is always safe to show them again.
+        if (r)
+            r.enabled = true;
     }
 }
