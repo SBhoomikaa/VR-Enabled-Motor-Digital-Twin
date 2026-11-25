@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 
 // A flat info panel that floats in the scene, like a sign. It is a real object: it stays where
 // it is put, so orbiting the camera changes how it looks, other parts can hide it, and the camera
@@ -25,7 +26,7 @@ public class FaultCallout : MonoBehaviour
     public float panelScreenWidth = 0.3f;
     [Range(0f, 0.2f)]
     [Tooltip("Gap between motor and panel, as a fraction of half the screen width (0 = touching)")]
-    public float panelGap = 0.03f;
+    public float panelGap = 0.01f;
     [Range(-0.5f, 0.8f)]
     [Tooltip("Moves the panel up (+) or down (-), as a fraction of half the screen height")]
     public float panelUp = 0.2f;
@@ -274,7 +275,13 @@ public class FaultCallout : MonoBehaviour
 
     void CacheBounds()
     {
-        if (motorRenderers == null) motorRenderers = fv.GetComponentsInChildren<Renderer>(true);
+        if (motorRenderers == null)
+        {
+            Transform assembly = fv.transform.Find("Assembly");
+            motorRenderers = fv.GetComponentsInChildren<Renderer>(true)
+                .Where(r => assembly == null || !r.transform.IsChildOf(assembly))
+                .ToArray();
+        }
         restBounds.Clear();
         foreach (var r in motorRenderers)
             if (r != null && r.enabled) restBounds.Add(r.bounds);

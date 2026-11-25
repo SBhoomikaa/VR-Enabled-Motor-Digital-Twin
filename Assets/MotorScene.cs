@@ -19,6 +19,7 @@ public class MotorScene : MonoBehaviour
     public bool buildFloor = true;
     public Color floorColor = new Color(0.20f, 0.21f, 0.23f);
     public Color baseColor = new Color(0.10f, 0.11f, 0.13f);
+    public bool buildBasePlate = false;
     [Tooltip("How far the base plate sticks out past the motor, as a fraction of the motor size")]
     public float baseOverhang = 0.2f;
     [Tooltip("Base plate thickness, as a fraction of the motor's longest side")]
@@ -72,11 +73,24 @@ public class MotorScene : MonoBehaviour
         Debug.Log("MotorScene: motor size " + b.size.x.ToString("0.00") + " x " + b.size.y.ToString("0.00")
                   + " x " + b.size.z.ToString("0.00") + " units");
 
-        // base plate: its top face touches the lowest point of the motor
-        float plateT = longest * baseThickness;
-        var plateSize = new Vector3(b.size.x * (1f + 2f * baseOverhang), plateT, b.size.z * (1f + 2f * baseOverhang));
-        var plateCenter = new Vector3(b.center.x, b.min.y - plateT * 0.5f, b.center.z);
+        float plateT = buildBasePlate ? longest * baseThickness : 0f;
+
+    if (buildBasePlate)
+    {
+        var plateSize = new Vector3(
+            b.size.x * (1f + 2f * baseOverhang),
+            plateT,
+            b.size.z * (1f + 2f * baseOverhang)
+        );
+
+        var plateCenter = new Vector3(
+            b.center.x,
+            b.min.y - plateT * 0.5f,
+            b.center.z
+        );
+
         MakeBlock("BasePlate", plateSize, plateCenter, baseColor, 0.35f);
+}
 
         // floor: its top face touches the underside of the base plate
         float floorT = longest * 0.05f;

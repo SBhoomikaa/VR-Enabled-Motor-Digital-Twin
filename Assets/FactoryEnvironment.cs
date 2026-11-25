@@ -32,8 +32,6 @@ public class FactoryEnvironment : MonoBehaviour
         // Floor and motor base plate
         Make(PrimitiveType.Cube, "Floor", new Vector3(c.x, floorY - 0.05f, c.z),
              new Vector3(roomSize, 0.1f, roomSize), Concrete, 0f, 0.3f);
-        Make(PrimitiveType.Cube, "BasePlate", new Vector3(c.x, b.min.y - baseH * 0.5f, c.z),
-             new Vector3(b.size.x * 1.4f, baseH, b.size.z * 1.4f), Steel, 0.8f, 0.5f);
 
         // Walls (back, left, right)
         float wy = floorY + wallHeight * 0.5f;
